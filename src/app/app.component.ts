@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Aurora } from './components/aurora/aurora.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  template: ` <router-outlet /> `,
+  imports: [Aurora],
+  templateUrl: './app.component.html',
   styles: [],
 })
 export class App {}
