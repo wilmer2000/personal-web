@@ -21,7 +21,7 @@ export class Aurora implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.initWebGL();
-    this.render(0);
+    this.animate(0);
   }
 
   ngOnDestroy() {
@@ -35,69 +35,66 @@ export class Aurora implements AfterViewInit, OnDestroy {
     const canvas = element.nativeElement;
 
     this.gl = canvas.getContext('webgl');
-
-    if (!this.gl) return;
+    if (!this.gl) {
+      console.error('WebGL not supported');
+      return;
+    }
 
     const vsSource = `
-      attribute vec4 position;
-      void main() { gl_Position = position; }
+      attribute vec2 p;
+      void main() { gl_Position = vec4(p, 0, 1); }
     `;
     const fsSource = `
-      precision highp float;
-      uniform float iTime;
-      uniform vec2 iResolution;
+      precision mediump float;
+      uniform vec2 res;
+      uniform float time;
 
       void main() {
-        vec2 uv = (gl_FragCoord.xy * 2.0 - iResolution.xy) / min(iResolution.y, iResolution.x);
-        vec3 finalColor = vec3(0.0);
-        for(float i = 0.0; i < 3.0; i++) {
-          float wave = sin(uv.x * (1.2 + i * 0.1) + iTime + i * 0.8) * 0.2;
-          wave += sin(uv.x * 2.0 - iTime * 0.4) * 0.05; 
-          vec3 spectralColor = vec3(0.4 + 0.1 * i, 0.2, 0.9);
-          float dist = abs(uv.y + wave);
-          float glow = 0.015 / (dist + 0.04); 
-          float core = smoothstep(0.15, 0.0, dist) * 0.5;
-          finalColor += spectralColor * (glow + core);
-        }
-        float vignette = smoothstep(1.5, 0.3, length(uv));
-        float noise = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453) * 0.04;
-        gl_FragColor = vec4((finalColor + noise) * vignette, 1.0);
+        vec2 uv = gl_FragCoord.xy / res;
+        float t = time * 0.3;
+        float noise = sin(uv.x * 3.0 + t) + sin(uv.y * 2.0 + t * 0.5);
+        vec3 blue = vec3(0.0, 0.1, 0.5);
+        vec3 purple = vec3(0.4, 0.0, 0.8);
+        vec3 magenta = vec3(0.9, 0.1, 0.6);
+        vec3 spectral = mix(blue, purple, sin(t + uv.x) * 0.5 + 0.5);
+        spectral = mix(spectral, magenta, noise * 0.3);
+        float mask = pow(1.0 - uv.y, 1.5); 
+        gl_FragColor = vec4(spectral * mask * 1.2, 1.0);
       }
     `;
 
     this.program = this.createProgram(this.gl, vsSource, fsSource);
-    this.setupBuffers();
+    this.gl.useProgram(this.program);
+
+    const buffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+      this.gl.STATIC_DRAW,
+    );
+
+    const pLoc = this.gl.getAttribLocation(this.program, 'p');
+    this.gl.enableVertexAttribArray(pLoc);
+    this.gl.vertexAttribPointer(pLoc, 2, this.gl.FLOAT, false, 0, 0);
   }
 
   private createProgram(gl: WebGLRenderingContext, vs: string, fs: string): WebGLProgram {
-    const loadShader = (type: number, source: string) => {
-      const shader = gl.createShader(type)!;
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      return shader;
-    };
-
     const program = gl.createProgram()!;
-    gl.attachShader(program, loadShader(gl.VERTEX_SHADER, vs));
-    gl.attachShader(program, loadShader(gl.FRAGMENT_SHADER, fs));
+    const addShader = (type: number, src: string) => {
+      const s = gl.createShader(type)!;
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      gl.attachShader(program, s);
+    };
+    addShader(gl.VERTEX_SHADER, vs);
+    addShader(gl.FRAGMENT_SHADER, fs);
     gl.linkProgram(program);
     return program;
   }
-
-  private setupBuffers() {
-    const gl = this.gl!;
-    const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    const posAttrib = gl.getAttribLocation(this.program, 'position');
-    gl.enableVertexAttribArray(posAttrib);
-    gl.vertexAttribPointer(posAttrib, 2, gl.FLOAT, false, 0, 0);
-  }
-
-  private render = (time: number) => {
+  private animate = (now: number) => {
     if (!this.gl) return;
+
     const element = this.canvasRef() as ElementRef<HTMLCanvasElement>;
     const canvas = element.nativeElement;
 
@@ -107,15 +104,13 @@ export class Aurora implements AfterViewInit, OnDestroy {
       this.gl.viewport(0, 0, canvas.width, canvas.height);
     }
 
-    this.gl.useProgram(this.program);
-    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'iTime'), time * 0.001);
-    this.gl.uniform2f(
-      this.gl.getUniformLocation(this.program, 'iResolution'),
-      canvas.width,
-      canvas.height,
-    );
+    const resLoc = this.gl.getUniformLocation(this.program, 'res');
+    const timeLoc = this.gl.getUniformLocation(this.program, 'time');
 
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-    this.animationFrameId = requestAnimationFrame(this.render);
+    this.gl.uniform2f(resLoc, canvas.width, canvas.height);
+    this.gl.uniform1f(timeLoc, now * 0.001);
+
+    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    this.animationFrameId = requestAnimationFrame(this.animate);
   };
 }

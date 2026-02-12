@@ -1,10 +1,32 @@
 <section class="h-screen w-full relative">
-  <h1
-    class="text-center absolute top-[50%] -translate-y-1/2 font-mono w-full leading text-2xl md:text-6xl lg:text-8xl"
+  <div
+    class="z-10 absolute bottom-0 left-0 p-8 w-full h-full flex flex-col justify-center items-center"
   >
-    <span class="block">Wilmer Blanco</span>
-    <span class="block">full-stack</span>
-    <span class="block">web designer</span>
-  </h1>
-  <app-aurora />
+    <h1 class="font-mono leading text-white mb-8 google-sans-code text-center">
+      <span class="block text-3xl mb-2">Wilmer Blanco</span>
+      <span class="block text-xl">full-stack</span>
+      <span class="block text-xl">web designer</span>
+    </h1>
+  </div>
+  <div
+    class="z-10 absolute bottom-0 left-0 p-8 w-full flex justify-center"
+  >
+    <svg
+      class="block"
+      fill="none"
+      height="24"
+      stroke="#FFF"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </svg>
+  </div>
+
+  <app-aurora class="absolute top-0 right-0 w-full h-full z-0" />
 </section>

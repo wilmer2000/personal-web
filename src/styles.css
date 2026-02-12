@@ -1,5 +1,27 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap');
+@import 'tailwindcss';
 
-html, body {
-    @apply w-full h-full;
+:root {
+  --bg: transparent;
+  --glass-bg: color-mix(in oklab, var(--bg) 60%, transparent);
+  --glass-border: color-mix(in oklab, var(--glass-bg) 60%, white);
+}
+
+html,
+body {
+  @apply w-full h-full;
+}
+
+.google-sans-code {
+  font-family: 'Google Sans Code', monospace;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+}
+
+.btn {
+  @apply rounded-3xl border border-(--glass-border) px-6 py-3 font-semibold;
+  @apply shadow-2xl/20 inset-shadow-sm inset-shadow-current/20 backdrop-blur-sm;
+  @apply bg-white/10 text-white w-fit cursor-pointer transition duration-300;
+  @apply hover:bg-white/20;
 }
